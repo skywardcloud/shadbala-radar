@@ -2,6 +2,22 @@
 <<<<<< codex/add-license-file-and-mention-in-readme
 Shadbala-radar
 
+<<<<< codex/create-tests-for-row-function-and-/balas-endpoint
+## Running tests
+
+Ensure dependencies are installed (preferably inside a virtual environment):
+
+```bash
+pip install -r backend/requirements.txt
+pip install pytest
+```
+
+Run the test suite with:
+
+```bash
+pytest
+```
+=======
 <<<<< codex/specify-exact-versions-for-dependencies
 ## Backend dependencies
 

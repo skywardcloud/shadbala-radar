@@ -1,6 +1,12 @@
 from fastapi import FastAPI
 from datetime import datetime, timedelta
-from .shadbala import row
+
+try:
+    # When executed as part of the package
+    from .shadbala import row
+except ImportError:  # pragma: no cover - allow running file directly
+    # Fallback for running `python main.py` during development
+    from shadbala import row
 
 app = FastAPI()
 

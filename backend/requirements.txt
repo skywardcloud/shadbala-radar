@@ -1,0 +1,4 @@
+fastapi
+uvicorn[standard]
+pyswisseph==2.10.03
+pandas

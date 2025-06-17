@@ -1,4 +1,9 @@
 # Shadbala-radar
+<<<<<< codex/add-license-file-and-mention-in-readme
+Shadbala-radar
+
+## License
+This project is licensed under the [MIT License](LICENSE).
 
 Shadbala-radar is an experimental application to compute the *Shadbala* (six-fold strength) of planets and visualize those metrics on a radar chart. The backend exposes a simple FastAPI service that calculates the data using the Swiss Ephemeris. A small frontend will eventually request this API and render the radar visualization in the browser.
 

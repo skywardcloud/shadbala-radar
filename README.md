@@ -65,6 +65,12 @@ uvicorn backend.app.main:app --reload
 
 The API will be available at `http://localhost:8000`.
 
+When using the React frontend during development the site typically runs on
+`http://localhost:5173` (or `127.0.0.1:5173`). The backend is configured to
+allow CORS requests from these origins. Ensure the backend is running and the
+URL matches one of these origins; otherwise the browser may report a
+"Failed to fetch" error when submitting the form.
+
 ### Querying Shadbala values
 
 `/balas` returns rows sampled every five minutes. You may provide an

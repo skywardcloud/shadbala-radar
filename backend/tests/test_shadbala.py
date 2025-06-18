@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from datetime import datetime
 
@@ -34,6 +35,12 @@ def patch_swe(monkeypatch):
     import importlib
     shadbala = importlib.import_module('backend.app.shadbala')
     monkeypatch.setattr(shadbala, "swe", dummy)
+    try:
+        pytest.importorskip("fastapi")
+        main = importlib.import_module('backend.app.main')
+        monkeypatch.setattr(main, "row", shadbala.row)
+    except ModuleNotFoundError:
+        pass
     return shadbala
 
 
@@ -55,3 +62,28 @@ def test_row_values(monkeypatch):
     assert abs(res["Moon"]["dig"] - 40.0) < 1e-6
     assert abs(res["Venus"]["cheshta"] - 50.0) < 1e-6
     assert abs(res["Jupiter"]["kala"] - 30.0) < 1e-6
+
+
+def test_balas_endpoint(monkeypatch):
+    pytest.importorskip("fastapi")
+    shadbala = patch_swe(monkeypatch)
+    from backend.app.main import app
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    resp = client.get(
+        "/balas",
+        params={"start": "2020-01-01T00:00", "end": "2020-01-01T01:00"},
+    )
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert len(payload["data"]) == 13
+    assert set(payload["data"][0].keys()) == {
+        "Sun",
+        "Moon",
+        "Mars",
+        "Mercury",
+        "Jupiter",
+        "Venus",
+        "Saturn",
+    }

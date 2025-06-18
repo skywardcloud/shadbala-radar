@@ -63,10 +63,19 @@ Start the FastAPI application from the repository root:
 uvicorn backend.app.main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`. A GET request to `/balas` returns Shadbala data for a series of timestamps. Example:
+The API will be available at `http://localhost:8000`.
+
+### Querying Shadbala values
+
+`/balas` returns rows sampled every five minutes. You may provide an
+`hours_ahead` value (the previous behaviour) or explicitly specify `start` and
+`end` datetimes in the `America/New_York` timezone. The range may not exceed 24
+hours.
+
+Example with a custom range:
 
 ```bash
-curl "http://localhost:8000/balas?hours_ahead=1&lat=37.7749&lon=-122.4194"
+curl "http://localhost:8000/balas?start=2020-01-01T00:00&end=2020-01-01T01:00&lat=37.7749&lon=-122.4194"
 ```
 
 ## Project purpose

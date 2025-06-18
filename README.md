@@ -10,6 +10,14 @@ npm install
 npm run dev
 ```
 
+Create a `.env` file in the `frontend` directory to configure the backend URL. It should define `VITE_API_URL`, e.g.
+
+```bash
+echo "VITE_API_URL=http://localhost:8000" > frontend/.env
+```
+
+An example file is provided at `frontend/.env.example`.
+
 The development server will start on http://localhost:5173 and automatically reload when files change.
 
 ## Running tests

@@ -8,6 +8,7 @@ function App() {
   const [lat, setLat] = React.useState('40.7128');
   const [lon, setLon] = React.useState('-74.0060');
   const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState(null);
   const svgRef = React.useRef(null);
 
   const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -15,8 +16,18 @@ function App() {
   const submit = async (e) => {
     e.preventDefault();
     const params = new URLSearchParams({ start, end, lat, lon });
-    const res = await fetch(`${BASE_URL}/balas?${params}`);
-    setData(await res.json());
+    setError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/balas?${params}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Request failed');
+      }
+      setData(await res.json());
+    } catch (err) {
+      setData(null);
+      setError(err.message);
+    }
   };
 
   React.useEffect(() => {
@@ -88,6 +99,7 @@ function App() {
         </label>
         <button type="submit">Fetch</button>
       </form>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       <svg ref={svgRef} width="600" height="300"></svg>
       {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
     </div>

@@ -49,7 +49,7 @@ pip install -r backend/requirements.txt
 
 ### Frontend
 
-A placeholder `frontend` directory is provided. Once the JavaScript application is implemented, install its dependencies with:
+The frontend is a small React application that renders a D3 line chart showing the Sun's Shadbala components over time. Install its dependencies with:
 
 ```bash
 npm install

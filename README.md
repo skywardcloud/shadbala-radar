@@ -76,11 +76,16 @@ uvicorn backend.app.main:app --reload
 
 The API will be available at `http://localhost:8000`.
 
+The backend reads a comma-separated list of allowed CORS origins from the
+`ALLOWED_ORIGINS` environment variable. If this variable is not set it
+defaults to `http://localhost:5173` and `http://127.0.0.1:5173`.
+
 When using the React frontend during development the site typically runs on
-`http://localhost:5173` (or `127.0.0.1:5173`). The backend is configured to
-allow CORS requests from these origins. Ensure the backend is running and the
-URL matches one of these origins; otherwise the browser may report a
-"Failed to fetch" error when submitting the form.
+`http://localhost:5173` (or `127.0.0.1:5173`). Ensure this URL is included in
+`ALLOWED_ORIGINS`; otherwise the browser may report a "Failed to fetch" error
+when submitting the form. When developing in GitHub Codespaces you will need to
+add the Codespaces URL for the frontend (for example
+`https://5173-<yourid>.app.github.dev`).
 
 ### Querying Shadbala values
 

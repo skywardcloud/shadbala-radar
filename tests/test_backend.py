@@ -27,3 +27,12 @@ def test_balas_endpoint_time_series_length():
     assert len(payload["data"]) == 12 + 1  # inclusive of start and end
     assert isinstance(payload["data"][0], dict)
     assert "Sun" in payload["data"][0]
+
+
+def test_allowed_origins_env(monkeypatch):
+    import importlib
+    monkeypatch.setenv("ALLOWED_ORIGINS", "https://example.com")
+    import backend.app.main as main
+    importlib.reload(main)
+    assert "https://example.com" in main.app.user_middleware[0].options["allow_origins"]
+

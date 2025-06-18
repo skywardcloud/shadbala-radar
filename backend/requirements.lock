@@ -2,3 +2,4 @@ fastapi==0.103.1
 uvicorn[standard]==0.23.2
 pyswisseph==2.10.03
 pandas==2.1.0
+httpx==0.27.0

@@ -85,7 +85,14 @@ When using the React frontend during development the site typically runs on
 `ALLOWED_ORIGINS`; otherwise the browser may report a "Failed to fetch" error
 when submitting the form. When developing in GitHub Codespaces you will need to
 add the Codespaces URL for the frontend (for example
-`https://5173-<yourid>.app.github.dev`).
+`https://5173-<yourid>.app.github.dev`). The value in `ALLOWED_ORIGINS` must
+match the URL used to serve the React app. You can start the backend in a
+Codespace with:
+
+```bash
+export ALLOWED_ORIGINS=https://5173-<yourid>.app.github.dev
+uvicorn backend.app.main:app --reload
+```
 
 ### Querying Shadbala values
 

@@ -98,6 +98,7 @@ def _cheshta_bala(speed: float, planet: str) -> float:
 
 def row(timestamp: datetime, lat: float, lon: float):
     """Return dict of {planet: {uccha, dig, kala, cheshta, naisargika, drik}}."""
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
     jd = swe.julday(
         timestamp.year,
         timestamp.month,

@@ -14,6 +14,8 @@ def test_row_returns_expected_structure():
     assert isinstance(result, dict)
     assert "Sun" in result
     assert set(result["Sun"].keys()) == {"uccha", "dig", "kala", "cheshta", "naisargika", "drik"}
+    for planet in ["Moon", "Mercury", "Venus"]:
+        assert planet in result
 
 
 def test_balas_endpoint_time_series_length():

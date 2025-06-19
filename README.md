@@ -60,7 +60,7 @@ pip install -r backend/requirements.txt
 
 ### Frontend
 
-The frontend is a small React application that renders a D3 line chart showing the Sun's Shadbala components over time. Install its dependencies with:
+The frontend is a small React application that renders D3 line charts showing the Shadbala components for the Sun, Moon, Mercury and Venus over time. Install its dependencies with:
 
 ```bash
 npm install

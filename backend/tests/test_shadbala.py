@@ -92,3 +92,26 @@ def test_balas_endpoint(monkeypatch):
         "Venus",
         "Saturn",
     }
+
+
+def test_balas_default_hours(monkeypatch):
+    """Ensure hours_ahead path returns correctly shaped data."""
+    pytest.importorskip("fastapi")
+    patch_swe(monkeypatch)
+    from backend.app.main import app
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    resp = client.get("/balas", params={"hours_ahead": 1})
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert isinstance(payload["start"], str)
+    assert set(payload["data"][0].keys()) == {
+        "Sun",
+        "Moon",
+        "Mars",
+        "Mercury",
+        "Jupiter",
+        "Venus",
+        "Saturn",
+    }

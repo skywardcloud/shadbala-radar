@@ -20,8 +20,11 @@ else:
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://fantastic-space-cod-5g57gw9764p9374gr-5173.app.github.dev",
     ]
+
+codespace = os.getenv("CODESPACE_NAME")
+if codespace:
+    allowed_origins.append(f"https://5173-{codespace}.app.github.dev")
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,11 +35,42 @@ app.add_middleware(
 )
 
 @app.get("/balas")
-def get_balas(start: str, end: str, lat: float, lon: float):
-    """Temporary /balas route returning submitted parameters.
+def get_balas(
+    hours_ahead: int | None = 24,
+    start: str | None = None,
+    end: str | None = None,
+    lat: float = 40.7128,
+    lon: float = -74.0060,
+):
+    """Return shadbala rows every 5 minutes.
 
-    This implementation is a placeholder and will be replaced with the
-    real logic in a later update.
+    Either ``hours_ahead`` or both ``start`` and ``end`` can be supplied. When
+    ``start``/``end`` are provided they are interpreted as datetimes in the
+    ``America/New_York`` timezone and the range may not exceed 24 hours.
     """
 
-    return {"start": start, "end": end, "lat": lat, "lon": lon}
+    tz = ZoneInfo("America/New_York")
+
+    if start and end:
+        start_dt = datetime.fromisoformat(start).replace(tzinfo=tz)
+        end_dt = datetime.fromisoformat(end).replace(tzinfo=tz)
+        start_utc = start_dt.astimezone(ZoneInfo("UTC"))
+        end_utc = end_dt.astimezone(ZoneInfo("UTC"))
+
+        if end_utc <= start_utc:
+            raise HTTPException(status_code=400, detail="end must be after start")
+        if end_utc - start_utc > timedelta(hours=24):
+            raise HTTPException(status_code=400, detail="range cannot exceed 24 hours")
+
+        frames = []
+        current = start_utc
+        while current <= end_utc:
+            frames.append(row(current, lat, lon))
+            current += timedelta(minutes=5)
+        return {"start": start_utc.isoformat(), "interval": "5m", "data": frames}
+
+    now = datetime.utcnow()
+    if hours_ahead is None:
+        hours_ahead = 24
+    frames = [row(now + timedelta(minutes=5 * i), lat, lon) for i in range(int(hours_ahead * 12))]
+    return {"start": now, "interval": "5m", "data": frames}

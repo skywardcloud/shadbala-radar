@@ -83,11 +83,11 @@ defaults to `http://localhost:5173` and `http://127.0.0.1:5173`.
 When using the React frontend during development the site typically runs on
 `http://localhost:5173` (or `127.0.0.1:5173`). Ensure this URL is included in
 `ALLOWED_ORIGINS`; otherwise the browser may report a "Failed to fetch" error
-when submitting the form. When developing in GitHub Codespaces you will need to
-add the Codespaces URL for the frontend (for example
-`https://5173-<yourid>.app.github.dev`). The value in `ALLOWED_ORIGINS` must
-match the URL used to serve the React app. You can start the backend in a
-Codespace with:
+when submitting the form. When developing in GitHub Codespaces you can either
+set `ALLOWED_ORIGINS` yourself or rely on the automatic detection of the
+Codespaces URL provided by the backend when `CODESPACE_NAME` is present. The
+value used must match the URL serving the React app. To explicitly configure it
+you can start the backend with:
 
 ```bash
 export ALLOWED_ORIGINS=https://5173-<yourid>.app.github.dev

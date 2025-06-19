@@ -20,6 +20,8 @@ else:
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://fantastic-space-cod-5g57gw9764p9374gr-5173.app.github.dev",
+        "https://fantastic-space-cod-5g57gw9764p9374gr-5173.app.github.dev"
     ]
 
 codespace = os.getenv("CODESPACE_NAME")
@@ -28,7 +30,7 @@ if codespace:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

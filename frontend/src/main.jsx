@@ -11,7 +11,7 @@ function App() {
   const [error, setError] = React.useState(null);
   const svgRef = React.useRef(null);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const BASE_URL = import.meta.env.VITE_API_URL || 'https://fantastic-space-cod-5g57gw9764p9374gr-8000.app.github.dev';
 
   const submit = async (e) => {
     e.preventDefault();

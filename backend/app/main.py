@@ -48,15 +48,25 @@ def get_balas(
     """Return shadbala rows every 5 minutes.
 
     Either ``hours_ahead`` or both ``start`` and ``end`` can be supplied. When
-    ``start``/``end`` are provided they are interpreted as datetimes in the
-    ``America/New_York`` timezone and the range may not exceed 24 hours.
+    ``start``/``end`` are provided they are parsed as ISO 8601 datetimes. If no
+    timezone is included they are assumed to be in the ``America/New_York``
+    timezone. The range may not exceed 24 hours.
     """
 
     tz = ZoneInfo("America/New_York")
 
     if start and end:
-        start_dt = datetime.fromisoformat(start).replace(tzinfo=tz)
-        end_dt = datetime.fromisoformat(end).replace(tzinfo=tz)
+        start_dt = datetime.fromisoformat(start)
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=tz)
+        else:
+            start_dt = start_dt.astimezone(tz)
+
+        end_dt = datetime.fromisoformat(end)
+        if end_dt.tzinfo is None:
+            end_dt = end_dt.replace(tzinfo=tz)
+        else:
+            end_dt = end_dt.astimezone(tz)
         start_utc = start_dt.astimezone(ZoneInfo("UTC"))
         end_utc = end_dt.astimezone(ZoneInfo("UTC"))
 

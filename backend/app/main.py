@@ -32,11 +32,47 @@ app.add_middleware(
 )
 
 @app.get("/balas")
-def get_balas(start: str, end: str, lat: float, lon: float):
-    """Temporary /balas route returning submitted parameters.
+def get_balas(
+    start: str | None = None,
+    end: str | None = None,
+    hours_ahead: int | None = None,
+    lat: float = 0.0,
+    lon: float = 0.0,
+):
+    """Return Shadbala values sampled every five minutes."""
 
-    This implementation is a placeholder and will be replaced with the
-    real logic in a later update.
-    """
+    if hours_ahead is not None and (start or end):
+        raise HTTPException(status_code=400, detail="Provide either hours_ahead or start/end")
 
-    return {"start": start, "end": end, "lat": lat, "lon": lon}
+    tz = ZoneInfo("America/New_York")
+
+    if hours_ahead is not None:
+        start_dt = datetime.now(tz)
+        end_dt = start_dt + timedelta(hours=hours_ahead)
+    else:
+        if not start or not end:
+            raise HTTPException(status_code=400, detail="start and end required")
+        try:
+            start_dt = datetime.fromisoformat(start).replace(tzinfo=tz)
+            end_dt = datetime.fromisoformat(end).replace(tzinfo=tz)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid datetime format")
+
+    if end_dt < start_dt:
+        raise HTTPException(status_code=400, detail="end must be after start")
+
+    if end_dt - start_dt > timedelta(hours=24):
+        raise HTTPException(status_code=400, detail="Range may not exceed 24 hours")
+
+    current = start_dt
+    rows = []
+    while current <= end_dt:
+        rows.append(row(current, lat=lat, lon=lon))
+        current += timedelta(minutes=5)
+
+    return {
+        "start": start_dt.isoformat(timespec="minutes"),
+        "end": end_dt.isoformat(timespec="minutes"),
+        "interval": "5m",
+        "data": rows,
+    }

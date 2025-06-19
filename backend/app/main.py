@@ -86,5 +86,5 @@ def get_balas(
     if hours_ahead is None:
         hours_ahead = 24
     frames = [row(now + timedelta(minutes=5 * i), lat, lon) for i in range(int(hours_ahead * 12))]
-    return {"start": now, "interval": "5m", "data": frames}
+    return {"start": now.isoformat(), "interval": "5m", "data": frames}
 

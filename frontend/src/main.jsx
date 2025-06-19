@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as d3 from 'd3';
 
+const PLANETS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+
 function PlanetChart({ planet, data }) {
   const svgRef = React.useRef(null);
 
@@ -51,6 +53,57 @@ function PlanetChart({ planet, data }) {
       .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
   }, [data, planet]);
+
+  return <svg ref={svgRef} width="600" height="300"></svg>;
+}
+
+function TotalBarChart({ data }) {
+  const svgRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!data) return;
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
+
+    const width = 600;
+    const height = 300;
+    const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+
+    const totals = PLANETS.map(p =>
+      d3.mean(data.data, row => {
+        const v = row[p];
+        return v.uccha + v.dig + v.kala + v.cheshta + v.naisargika + v.drik;
+      })
+    );
+
+    const x = d3.scaleBand()
+      .domain(PLANETS)
+      .range([margin.left, width - margin.right])
+      .padding(0.1);
+
+    const y = d3.scaleLinear()
+      .domain([0, d3.max(totals)])
+      .nice()
+      .range([height - margin.bottom, margin.top]);
+
+    svg.append('g')
+      .selectAll('rect')
+      .data(totals)
+      .join('rect')
+        .attr('x', (_, i) => x(PLANETS[i]))
+        .attr('y', d => y(d))
+        .attr('height', d => y(0) - y(d))
+        .attr('width', x.bandwidth())
+        .attr('fill', 'steelblue');
+
+    svg.append('g')
+      .attr('transform', `translate(0,${height - margin.bottom})`)
+      .call(d3.axisBottom(x));
+
+    svg.append('g')
+      .attr('transform', `translate(${margin.left},0)`)
+      .call(d3.axisLeft(y));
+  }, [data]);
 
   return <svg ref={svgRef} width="600" height="300"></svg>;
 }
@@ -106,12 +159,18 @@ function App() {
         <button type="submit">Fetch</button>
       </form>
         {error && <p style={{ color: 'red' }}>{error}</p>}
-        {data && ['Sun', 'Moon', 'Mercury', 'Venus'].map(p => (
+        {data && PLANETS.map(p => (
           <div key={p} style={{ marginBottom: '2rem' }}>
             <h2>{p}</h2>
             <PlanetChart planet={p} data={data} />
           </div>
         ))}
+        {data && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2>Total Shadbala Averages</h2>
+            <TotalBarChart data={data} />
+          </div>
+        )}
         {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
       </div>
   );

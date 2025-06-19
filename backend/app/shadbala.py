@@ -104,7 +104,15 @@ def row(timestamp: datetime, lat: float, lon: float):
 
     results = {}
     for name, pid in PLANETS:
-        lon_deg, lat_deg, dist, speed = swe.calc_ut(jd, pid)
+        calc_result = swe.calc_ut(jd, pid)
+        if (
+            isinstance(calc_result, tuple)
+            and len(calc_result) == 2
+            and isinstance(calc_result[0], (list, tuple))
+        ):
+            lon_deg, lat_deg, dist, speed = calc_result[0][:4]
+        else:
+            lon_deg, lat_deg, dist, speed = calc_result[:4]
         results[name] = {
             "uccha": _uccha_bala(lon_deg, name),
             "dig": _dig_bala(lon_deg, name),

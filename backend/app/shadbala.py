@@ -137,8 +137,6 @@ def _kala_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> floa
 def _cheshta_bala(speed: float, planet: str) -> float:
     max_speed = MAX_SPEED.get(planet, 1.0)
     ratio = abs(speed) / max_speed
-    if ratio > 1.0:
-        ratio = 1.0
     return ratio * 60.0
 
 

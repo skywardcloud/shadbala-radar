@@ -38,6 +38,7 @@ app.add_middleware(
 
 @app.get("/balas")
 def get_balas(
+
     hours_ahead: int | None = 24,
     start: str | None = None,
     end: str | None = None,
@@ -76,3 +77,4 @@ def get_balas(
         hours_ahead = 24
     frames = [row(now + timedelta(minutes=5 * i), lat, lon) for i in range(int(hours_ahead * 12))]
     return {"start": now, "interval": "5m", "data": frames}
+

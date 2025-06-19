@@ -73,8 +73,26 @@ def _uccha_bala(longitude: float, planet: str) -> float:
     return 60.0 * (180.0 - diff) / 180.0
 
 
-def _dig_bala(longitude: float, planet: str) -> float:
-    house = int(longitude % 360 // 30) + 1
+def _dig_bala(jd: float, lat: float, lon: float, planet_long: float, planet: str) -> float:
+    """Directional strength using actual house position."""
+    try:
+        cusps, _ = swe.houses(jd, lat, lon)
+    except Exception:
+        # Fallback to sign-based house if house computation fails
+        house = int(planet_long % 360 // 30) + 1
+    else:
+        # Determine which house the planet occupies
+        house = 12
+        lon_norm = planet_long % 360
+        for i in range(12):
+            start = cusps[i] % 360
+            end = cusps[(i + 1) % 12] % 360
+            if end < start:
+                end += 360
+            if start <= lon_norm < end:
+                house = i + 1
+                break
+
     diff = abs(house - DIRECTIONAL_HOUSE[planet])
     if diff > 6:
         diff = 12 - diff
@@ -83,9 +101,37 @@ def _dig_bala(longitude: float, planet: str) -> float:
     return 60.0 * (6 - diff) / 6
 
 
-def _kala_bala(timestamp: datetime) -> float:
-    frac = (timestamp.hour + timestamp.minute / 60.0 + timestamp.second / 3600.0) / 24.0
-    return 30.0 + 30.0 * math.sin(2 * math.pi * frac)
+def _kala_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
+    """Time strength based on day/night fraction."""
+    jd_date = swe.julday(timestamp.year, timestamp.month, timestamp.day, 0.0)
+    try:
+        sr = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_RISE)[1]
+        ss = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_SET)[1]
+    except Exception:
+        # Fallback to naive 6am/6pm times if ephemeris is unavailable
+        sr = jd_date + 0.25
+        ss = jd_date + 0.75
+    jd_now = swe.julday(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
+    )
+
+    if sr < ss:
+        day_frac = min(max((jd_now - sr) / (ss - sr), 0.0), 1.0) if sr <= jd_now < ss else 0.0
+    else:
+        day_frac = 0.5
+
+    is_day = sr <= jd_now < ss if sr < ss else True
+
+    if planet in ["Sun", "Jupiter", "Saturn"]:
+        return 60.0 * day_frac
+    elif planet in ["Moon", "Mars", "Venus"]:
+        return 60.0 * (1.0 - day_frac)
+    else:  # Mercury, treat as neutral
+        balance = 1.0 - abs(0.5 - day_frac) * 2
+        return 30.0 + 30.0 * balance
 
 
 def _cheshta_bala(speed: float, planet: str) -> float:
@@ -94,6 +140,18 @@ def _cheshta_bala(speed: float, planet: str) -> float:
     if ratio > 1.0:
         ratio = 1.0
     return ratio * 60.0
+
+
+def _drik_bala(plon: float, others: list[float]) -> float:
+    """Aspect strength based on separations from other planets."""
+    if not others:
+        return 0.0
+    total = 0.0
+    for other in others:
+        diff = _angle_diff(plon, other)
+        strength = max(0.0, 60.0 - diff / 3.0)
+        total += strength
+    return total / len(others)
 
 
 def row(timestamp: datetime, lat: float, lon: float):
@@ -105,8 +163,9 @@ def row(timestamp: datetime, lat: float, lon: float):
         timestamp.day,
         timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
     )
-
     results = {}
+    positions: dict[str, float] = {}
+
     for name, pid in PLANETS:
         calc_result = swe.calc_ut(jd, pid)
         if (
@@ -117,12 +176,18 @@ def row(timestamp: datetime, lat: float, lon: float):
             lon_deg, lat_deg, dist, speed = calc_result[0][:4]
         else:
             lon_deg, lat_deg, dist, speed = calc_result[:4]
+        positions[name] = lon_deg
         results[name] = {
             "uccha": _uccha_bala(lon_deg, name),
-            "dig": _dig_bala(lon_deg, name),
-            "kala": _kala_bala(timestamp),
+            "dig": _dig_bala(jd, lat, lon, lon_deg, name),
+            "kala": _kala_bala(timestamp, lat, lon, name),
             "cheshta": _cheshta_bala(speed, name),
             "naisargika": NAISARGIKA_BALA[name],
             "drik": 0.0,
         }
+
+    for name, pos in positions.items():
+        others = [p for pname, p in positions.items() if pname != name]
+        results[name]["drik"] = _drik_bala(pos, others)
+
     return results

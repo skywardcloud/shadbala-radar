@@ -13,6 +13,11 @@ class DummySwe:
     JUPITER = 4
     VENUS = 5
     SATURN = 6
+    SIDM_LAHIRI = 1
+
+    def set_sid_mode(self, mode, t0=0, ayan_t0=0):
+        """Dummy implementation for sidereal mode."""
+        self.sid_mode = mode
 
     def julday(self, y, m, d, h):
         return 0.0

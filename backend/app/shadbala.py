@@ -2,6 +2,9 @@ from datetime import datetime
 import math
 import swisseph as swe
 
+# Use sidereal calculations with the Lahiri ayanamsa
+swe.set_sid_mode(swe.SIDM_LAHIRI)
+
 # Exaltation degrees for planets
 EXALTATION_DEGREES = {
     "Sun": 10,

@@ -12,7 +12,7 @@ function PlanetChart({ planet, data }) {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const width = 600;
+    const width = 450;
     const height = 300;
     const margin = { top: 20, right: 30, bottom: 30, left: 40 };
 
@@ -54,7 +54,7 @@ function PlanetChart({ planet, data }) {
       .call(d3.axisLeft(y));
   }, [data, planet]);
 
-  return <svg ref={svgRef} width="600" height="300"></svg>;
+  return <svg ref={svgRef} width="450" height="300"></svg>;
 }
 
 function TotalBarChart({ data }) {
@@ -159,12 +159,16 @@ function App() {
         <button type="submit">Fetch</button>
       </form>
         {error && <p style={{ color: 'red' }}>{error}</p>}
-        {data && PLANETS.map(p => (
-          <div key={p} style={{ marginBottom: '2rem' }}>
-            <h2>{p}</h2>
-            <PlanetChart planet={p} data={data} />
+        {data && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            {PLANETS.map(p => (
+              <div key={p} style={{ marginBottom: '2rem', flex: '0 0 48%' }}>
+                <h2>{p}</h2>
+                <PlanetChart planet={p} data={data} />
+              </div>
+            ))}
           </div>
-        ))}
+        )}
         {data && (
           <div style={{ marginBottom: '2rem' }}>
             <h2>Total Shadbala Averages</h2>

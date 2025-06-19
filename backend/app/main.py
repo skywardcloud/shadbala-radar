@@ -20,8 +20,11 @@ else:
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://fantastic-space-cod-5g57gw9764p9374gr-5173.app.github.dev",
     ]
+
+codespace = os.getenv("CODESPACE_NAME")
+if codespace:
+    allowed_origins.append(f"https://5173-{codespace}.app.github.dev")
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,46 +36,43 @@ app.add_middleware(
 
 @app.get("/balas")
 def get_balas(
+
+    hours_ahead: int | None = 24,
     start: str | None = None,
     end: str | None = None,
-    hours_ahead: int | None = None,
-    lat: float = 0.0,
-    lon: float = 0.0,
+    lat: float = 40.7128,
+    lon: float = -74.0060,
 ):
-    """Return Shadbala values sampled every five minutes."""
+    """Return shadbala rows every 5 minutes.
 
-    if hours_ahead is not None and (start or end):
-        raise HTTPException(status_code=400, detail="Provide either hours_ahead or start/end")
+    Either ``hours_ahead`` or both ``start`` and ``end`` can be supplied. When
+    ``start``/``end`` are provided they are interpreted as datetimes in the
+    ``America/New_York`` timezone and the range may not exceed 24 hours.
+    """
 
     tz = ZoneInfo("America/New_York")
 
-    if hours_ahead is not None:
-        start_dt = datetime.now(tz)
-        end_dt = start_dt + timedelta(hours=hours_ahead)
-    else:
-        if not start or not end:
-            raise HTTPException(status_code=400, detail="start and end required")
-        try:
-            start_dt = datetime.fromisoformat(start).replace(tzinfo=tz)
-            end_dt = datetime.fromisoformat(end).replace(tzinfo=tz)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid datetime format")
+    if start and end:
+        start_dt = datetime.fromisoformat(start).replace(tzinfo=tz)
+        end_dt = datetime.fromisoformat(end).replace(tzinfo=tz)
+        start_utc = start_dt.astimezone(ZoneInfo("UTC"))
+        end_utc = end_dt.astimezone(ZoneInfo("UTC"))
 
-    if end_dt < start_dt:
-        raise HTTPException(status_code=400, detail="end must be after start")
+        if end_utc <= start_utc:
+            raise HTTPException(status_code=400, detail="end must be after start")
+        if end_utc - start_utc > timedelta(hours=24):
+            raise HTTPException(status_code=400, detail="range cannot exceed 24 hours")
 
-    if end_dt - start_dt > timedelta(hours=24):
-        raise HTTPException(status_code=400, detail="Range may not exceed 24 hours")
+        frames = []
+        current = start_utc
+        while current <= end_utc:
+            frames.append(row(current, lat, lon))
+            current += timedelta(minutes=5)
+        return {"start": start_utc.isoformat(), "interval": "5m", "data": frames}
 
-    current = start_dt
-    rows = []
-    while current <= end_dt:
-        rows.append(row(current, lat=lat, lon=lon))
-        current += timedelta(minutes=5)
+    now = datetime.utcnow()
+    if hours_ahead is None:
+        hours_ahead = 24
+    frames = [row(now + timedelta(minutes=5 * i), lat, lon) for i in range(int(hours_ahead * 12))]
+    return {"start": now, "interval": "5m", "data": frames}
 
-    return {
-        "start": start_dt.isoformat(timespec="minutes"),
-        "end": end_dt.isoformat(timespec="minutes"),
-        "interval": "5m",
-        "data": rows,
-    }

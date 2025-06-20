@@ -12,6 +12,8 @@ class DummySwe:
     JUPITER = 4
     VENUS = 5
     SATURN = 6
+    MEAN_NODE = 7
+    TRUE_NODE = 8
     SIDM_LAHIRI = 1
     def set_sid_mode(self, mode, t0=0, ayan_t0=0):
         pass

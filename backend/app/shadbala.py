@@ -200,8 +200,22 @@ def _drik_bala(plon: float, planet: str, positions: dict[str, float]) -> float:
     return total
 
 
-def row(timestamp: datetime, lat: float, lon: float):
-    """Return dict of {planet: {uccha, dig, kala, cheshta, naisargika, drik}}."""
+def row(timestamp: datetime, lat: float, lon: float, use_true_node: bool = False):
+    """Return dict of {planet: {uccha, dig, kala, cheshta, naisargika, drik}}.
+
+    Parameters
+    ----------
+    timestamp : datetime
+        Moment for which the planetary strengths are computed.
+    lat : float
+        Latitude of the observer.
+    lon : float
+        Longitude of the observer.
+    use_true_node : bool, optional
+        If ``True`` use the true node for Rahu/Ketu calculations, otherwise the
+        mean node is used. Rahu and Ketu are not returned in the result but may
+        be added to the internal positions dictionary for Drik bala purposes.
+    """
     swe.set_sid_mode(swe.SIDM_LAHIRI)
     jd = swe.julday(
         timestamp.year,
@@ -231,6 +245,24 @@ def row(timestamp: datetime, lat: float, lon: float):
             "naisargika": NAISARGIKA_BALA[name],
             "drik": 0.0,
         }
+
+    # Calculate Rahu and Ketu positions if needed. They are not included in the
+    # returned results by default but can be injected into ``positions`` when
+    # Drik bala calculations should consider the lunar nodes.
+    node_pid = swe.TRUE_NODE if use_true_node else swe.MEAN_NODE
+    node_calc = swe.calc_ut(jd, node_pid)
+    if (
+        isinstance(node_calc, tuple)
+        and len(node_calc) == 2
+        and isinstance(node_calc[0], (list, tuple))
+    ):
+        rahu_lon = node_calc[0][0]
+    else:
+        rahu_lon = node_calc[0]
+    ketu_lon = (rahu_lon + 180.0) % 360.0
+    # Uncomment the following lines to include the nodes in Drik bala
+    # positions["Rahu"] = rahu_lon
+    # positions["Ketu"] = ketu_lon
 
     for name, pos in positions.items():
         results[name]["drik"] = _drik_bala(pos, name, positions)

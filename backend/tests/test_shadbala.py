@@ -13,6 +13,8 @@ class DummySwe:
     JUPITER = 4
     VENUS = 5
     SATURN = 6
+    MEAN_NODE = 7
+    TRUE_NODE = 8
     SIDM_LAHIRI = 1
 
     def set_sid_mode(self, mode, t0=0, ayan_t0=0):
@@ -31,6 +33,8 @@ class DummySwe:
             4: (130, 0, 1, 1),
             5: (160, 0, 1, 1),
             6: (190, 0, 1, 1),
+            7: (220, 0, 1, 1),
+            8: (40, 0, 1, 1),
         }
         return longs[pid]
 

@@ -115,3 +115,24 @@ def test_balas_default_hours(monkeypatch):
         "Venus",
         "Saturn",
     }
+
+
+def test_balas_csv(monkeypatch):
+    """CSV endpoint returns downloadable data."""
+    pytest.importorskip("fastapi")
+    patch_swe(monkeypatch)
+    from backend.app.main import app
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    resp = client.get(
+        "/balas.csv",
+        params={"start": "2020-01-01T00:00", "end": "2020-01-01T00:10"},
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+    assert "attachment;" in resp.headers.get("content-disposition", "")
+    lines = resp.text.strip().splitlines()
+    # 3 time points * 7 planets + header
+    assert len(lines) == 1 + 3 * 7
+    assert lines[0].startswith("timestamp,planet,uccha")

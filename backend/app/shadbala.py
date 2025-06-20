@@ -270,3 +270,255 @@ def row(timestamp: datetime, lat: float, lon: float, use_true_node: bool = False
             results[name]["drik"] = _drik_bala(pos, name, positions)
 
     return results
+
+
+def _varga_sign(longitude: float, varga: int) -> int:
+    """Return the sign index (0..11) for a given varga division."""
+    return int(math.floor(longitude * varga / 30.0)) % 12
+
+
+_SIGN_RULER = [
+    "Mars",
+    "Venus",
+    "Mercury",
+    "Moon",
+    "Sun",
+    "Mercury",
+    "Venus",
+    "Mars",
+    "Jupiter",
+    "Saturn",
+    "Saturn",
+    "Jupiter",
+]
+
+_MASCULINE_PLANETS = {"Sun", "Mars", "Jupiter", "Saturn"}
+_DIURNAL_PLANETS = {"Sun", "Jupiter", "Saturn"}
+
+
+def _saptavargaja_bala(longitude: float, planet: str) -> float:
+    """Strength from dignity across seven classical vargas."""
+    exalt_sign = int(EXALTATION_DEGREES[planet] // 30)
+    total = 0.0
+    for varga in (1, 2, 3, 9, 12, 30, 60):
+        sign = _varga_sign(longitude, varga)
+        ruler = _SIGN_RULER[sign]
+        if ruler == planet or sign == exalt_sign:
+            total += 5.0
+    return total
+
+
+def _ojayugmadi_bala(longitude: float, planet: str) -> float:
+    sign = int(longitude // 30) + 1
+    if sign % 2 == 1 and planet in _MASCULINE_PLANETS:
+        return 15.0
+    return 0.0
+
+
+def _house_position(jd: float, lat: float, lon: float, planet_long: float) -> int:
+    """Return the house position using Swiss Ephemeris if available."""
+    try:
+        cusps, _ = swe.houses(jd, lat, lon)
+    except Exception:
+        return int(planet_long % 360 // 30) + 1
+    lon_norm = planet_long % 360
+    for i in range(12):
+        start = cusps[i] % 360
+        end = cusps[(i + 1) % 12] % 360
+        if end < start:
+            end += 360
+        if start <= lon_norm < end:
+            return i + 1
+    return 12
+
+
+def _kendradi_bala(jd: float, lat: float, lon: float, planet_long: float) -> float:
+    house = _house_position(jd, lat, lon, planet_long)
+    if house in {1, 4, 7, 10}:
+        return 60.0
+    if house in {2, 5, 8, 11}:
+        return 30.0
+    return 15.0
+
+
+def _drekkana_bala(longitude: float, planet: str) -> float:
+    sign = int(longitude // 30)
+    deg = longitude % 30
+    idx = int(deg // 10)
+    if idx == 0:
+        ruler = _SIGN_RULER[sign]
+    elif idx == 1:
+        ruler = _SIGN_RULER[(sign + 4) % 12]
+    else:
+        ruler = _SIGN_RULER[(sign + 8) % 12]
+    return 15.0 if ruler == planet else 0.0
+
+
+def _paksha_bala(moon_lon: float, sun_lon: float) -> float:
+    diff = _angle_diff(moon_lon, sun_lon)
+    return 60.0 * diff / 180.0
+
+
+def _nathonnatha_bala(lat_deg: float) -> float:
+    ratio = min(1.0, abs(lat_deg) / 30.0)
+    return 60.0 * ratio
+
+
+def _tribhaga_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
+    jd_date = swe.julday(timestamp.year, timestamp.month, timestamp.day, 0.0)
+    try:
+        sr = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_RISE)[1]
+        ss = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_SET)[1]
+    except Exception:
+        sr = jd_date + 0.25
+        ss = jd_date + 0.75
+    jd_now = swe.julday(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
+    )
+    if sr <= jd_now < ss:
+        part = (ss - sr) / 3.0
+        if jd_now < sr + part:
+            return 60.0
+        if jd_now < sr + 2 * part:
+            return 30.0
+        return 15.0
+    else:
+        sr_prev = sr - 1.0
+        part = (sr - ss) / 3.0
+        if jd_now < ss + part:
+            return 60.0
+        if jd_now < ss + 2 * part:
+            return 30.0
+        return 15.0
+
+
+def _ayana_bala(sun_long: float, planet: str) -> float:
+    north = sun_long < 180.0
+    if planet in _DIURNAL_PLANETS and north:
+        return 60.0
+    if planet not in _DIURNAL_PLANETS and not north:
+        return 60.0
+    return 30.0
+
+
+def _varshadi_bala(timestamp: datetime, planet: str) -> float:
+    return 15.0 if WEEKDAY_LORD[timestamp.weekday()] == planet else 0.0
+
+
+def _hora_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
+    return _kala_bala(timestamp, lat, lon, planet)
+
+
+def _yamardha_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
+    jd_date = swe.julday(timestamp.year, timestamp.month, timestamp.day, 0.0)
+    try:
+        sr = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_RISE)[1]
+        ss = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_SET)[1]
+    except Exception:
+        sr = jd_date + 0.25
+        ss = jd_date + 0.75
+    jd_now = swe.julday(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
+    )
+    day_len = ss - sr
+    if sr <= jd_now < ss:
+        part = day_len / 8.0
+        index = int((jd_now - sr) / part)
+    else:
+        part = (sr + 1 - ss) / 8.0
+        index = int((jd_now - ss) / part)
+    if index in {0, 7} and planet == "Saturn":
+        return 30.0
+    if index in {3, 4} and planet == "Sun":
+        return 30.0
+    return 15.0
+
+
+def compute_shadbala(timestamp: datetime, lat: float, lon: float, use_true_node: bool = False):
+    """Return full Shadbala values including all sub components."""
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
+    jd = swe.julday(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
+    )
+    positions: dict[str, float] = {}
+    latitudes: dict[str, float] = {}
+    speeds: dict[str, float] = {}
+    results: dict[str, dict[str, float]] = {}
+
+    for name, pid in PLANETS:
+        calc_result = swe.calc_ut(jd, pid)
+        if (
+            isinstance(calc_result, tuple)
+            and len(calc_result) == 2
+            and isinstance(calc_result[0], (list, tuple))
+        ):
+            lon_deg, lat_deg, dist, speed = calc_result[0][:4]
+        else:
+            lon_deg, lat_deg, dist, speed = calc_result[:4]
+        positions[name] = lon_deg
+        latitudes[name] = lat_deg
+        speeds[name] = speed
+
+    node_pid = swe.TRUE_NODE if use_true_node else swe.MEAN_NODE
+    node_calc = swe.calc_ut(jd, node_pid)
+    if (
+        isinstance(node_calc, tuple)
+        and len(node_calc) == 2
+        and isinstance(node_calc[0], (list, tuple))
+    ):
+        rahu_lon = node_calc[0][0]
+    else:
+        rahu_lon = node_calc[0]
+    ketu_lon = (rahu_lon + 180.0) % 360.0
+    positions["Rahu"] = rahu_lon
+    positions["Ketu"] = ketu_lon
+
+    sun_long = positions["Sun"]
+    moon_long = positions["Moon"]
+
+    for name in [p[0] for p in PLANETS]:
+        lon_deg = positions[name]
+        lat_deg = latitudes[name]
+        sthana = (
+            _uccha_bala(lon_deg, name)
+            + _saptavargaja_bala(lon_deg, name)
+            + _ojayugmadi_bala(lon_deg, name)
+            + _kendradi_bala(jd, lat, lon, lon_deg)
+            + _drekkana_bala(lon_deg, name)
+        )
+        dig = _dig_bala(jd, lat, lon, lon_deg, name)
+        kala = (
+            _hora_bala(timestamp, lat, lon, name)
+            + _paksha_bala(moon_long, sun_long) if name == "Moon" else _hora_bala(timestamp, lat, lon, name)
+        )
+        if name == "Moon":
+            kala += _paksha_bala(moon_long, sun_long)
+        kala += _nathonnatha_bala(lat_deg)
+        kala += _tribhaga_bala(timestamp, lat, lon, name)
+        kala += _ayana_bala(sun_long, name)
+        kala += _varshadi_bala(timestamp, name)
+        kala += _yamardha_bala(timestamp, lat, lon, name)
+        cheshta = _cheshta_bala(speeds[name], name)
+        naisargika = NAISARGIKA_BALA[name]
+        drik = _drik_bala(lon_deg, name, positions)
+        total = sthana + dig + kala + cheshta + naisargika + drik
+        results[name] = {
+            "sthāna": sthana,
+            "dig": dig,
+            "kāla": kala,
+            "cheshta": cheshta,
+            "naisargika": naisargika,
+            "drik": drik,
+            "total": total,
+        }
+
+    return results

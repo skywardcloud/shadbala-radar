@@ -59,6 +59,10 @@ PLANETS = [
     ("Saturn", swe.SATURN),
 ]
 
+# Simple benefic/malefic categorisation used for Drik bala
+BENEFIC_PLANETS = {"Jupiter", "Venus"}
+MALEFIC_PLANETS = {"Mars", "Saturn"}
+
 
 def _angle_diff(a: float, b: float) -> float:
     """Return the absolute difference between two angles within 0..180."""
@@ -140,14 +144,19 @@ def _cheshta_bala(speed: float, planet: str) -> float:
     return ratio * 60.0
 
 
-def _drik_bala(plon: float, others: list[float]) -> float:
-    """Aspect strength based on separations from other planets."""
+def _drik_bala(plon: float, others: dict[str, float]) -> float:
+    """Aspect strength based on separations from other planets.
+
+    Benefic aspects contribute positively while malefic aspects reduce the score.
+    """
     if not others:
         return 0.0
     total = 0.0
-    for other in others:
+    for name, other in others.items():
         diff = _angle_diff(plon, other)
         strength = max(0.0, 60.0 - diff / 3.0)
+        if name in MALEFIC_PLANETS:
+            strength *= -1
         total += strength
     return total / len(others)
 
@@ -185,7 +194,7 @@ def row(timestamp: datetime, lat: float, lon: float):
         }
 
     for name, pos in positions.items():
-        others = [p for pname, p in positions.items() if pname != name]
+        others = {pname: p for pname, p in positions.items() if pname != name}
         results[name]["drik"] = _drik_bala(pos, others)
 
     return results

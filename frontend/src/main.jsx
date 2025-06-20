@@ -60,20 +60,6 @@ function PlanetChart({ planet, data }) {
       .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
 
-    // gridlines
-    svg.append('g')
-      .attr('class', 'grid')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x)
-        .tickSize(-(height - margin.top - margin.bottom))
-        .tickFormat(''));
-
-    svg.append('g')
-      .attr('class', 'grid')
-      .attr('transform', `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y)
-        .tickSize(-(width - margin.left - margin.right))
-        .tickFormat(''));
 
     // zero baseline for negative values
     svg.append('line')
@@ -102,94 +88,35 @@ function PlanetChart({ planet, data }) {
   return <svg ref={svgRef} width="450" height="300" className="chart"></svg>;
 }
 
-function TotalBarChart({ data }) {
-  const svgRef = React.useRef(null);
+function PlanetTable({ planet, data }) {
+  const startTime = new Date(data.start);
+  const times = data.data.map((_, i) => new Date(startTime.getTime() + i * 5 * 60 * 1000));
+  const components = ['uccha', 'dig', 'kala', 'cheshta', 'naisargika', 'drik'];
 
-  React.useEffect(() => {
-    if (!data) return;
-    const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
-
-    const width = 600;
-    const height = 300;
-    const margin = { top: 20, right: 30, bottom: 30, left: 40 };
-
-    const totals = PLANETS.map(p =>
-      d3.mean(data.data, row => {
-        const v = row[p];
-        return v.uccha + v.dig + v.kala + v.cheshta + v.naisargika + v.drik;
-      })
-    );
-
-    const x = d3.scaleBand()
-      .domain(PLANETS)
-      .range([margin.left, width - margin.right])
-      .padding(0.1);
-
-    const yMin = d3.min(totals);
-    const yMax = d3.max(totals);
-    const y = d3.scaleLinear()
-      .domain([Math.min(0, yMin), yMax])
-      .nice()
-      .range([height - margin.bottom, margin.top]);
-
-    svg.append('g')
-      .selectAll('rect')
-      .data(totals)
-      .join('rect')
-        .attr('x', (_, i) => x(PLANETS[i]))
-        .attr('y', d => y(d))
-        .attr('height', d => y(0) - y(d))
-        .attr('width', x.bandwidth())
-        .attr('fill', 'steelblue');
-
-    svg.append('g')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x));
-
-    svg.append('g')
-      .attr('transform', `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y));
-
-    // gridlines
-    svg.append('g')
-      .attr('class', 'grid')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x)
-        .tickSize(-(height - margin.top - margin.bottom))
-        .tickFormat(''));
-
-    svg.append('g')
-      .attr('class', 'grid')
-      .attr('transform', `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y)
-        .tickSize(-(width - margin.left - margin.right))
-        .tickFormat(''));
-
-    svg.append('line')
-      .attr('x1', margin.left)
-      .attr('x2', width - margin.right)
-      .attr('y1', y(0))
-      .attr('y2', y(0))
-      .attr('stroke', '#ccc');
-
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', height)
-      .attr('dy', '2.5em')
-      .attr('text-anchor', 'middle')
-      .text('Planet');
-
-    svg.append('text')
-      .attr('transform', 'rotate(-90)')
-      .attr('x', -height / 2)
-      .attr('y', 15)
-      .attr('text-anchor', 'middle')
-      .text('Avg Bala');
-  }, [data]);
-
-  return <svg ref={svgRef} width="600" height="300" className="chart"></svg>;
+  return (
+    <table className="bala-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          {components.map(c => (
+            <th key={c}>{c}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.data.map((row, i) => (
+          <tr key={i}>
+            <td>{times[i].toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+            {components.map(c => (
+              <td key={c}>{Math.abs(row[planet][c]).toFixed(2)}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }
+
 
 function App() {
   const [start, setStart] = React.useState('');
@@ -218,6 +145,11 @@ function App() {
     }
   };
 
+  const exportCsv = () => {
+    const params = new URLSearchParams({ start, end, lat, lon });
+    window.location.href = `${BASE_URL}/balas.csv?${params}`;
+  };
+
 
   return (
     <div className="app-container">
@@ -240,6 +172,7 @@ function App() {
           <input type="number" step="0.0001" value={lon} onChange={(e) => setLon(e.target.value)} />
         </label>
         <button type="submit">Fetch</button>
+        <button type="button" onClick={exportCsv}>Export CSV</button>
       </form>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {data && (
@@ -248,17 +181,11 @@ function App() {
               <div key={p} style={{ flex: '0 0 48%' }} className="chart-container">
                 <h2>{p}</h2>
                 <PlanetChart planet={p} data={data} />
+                <PlanetTable planet={p} data={data} />
               </div>
             ))}
           </div>
         )}
-        {data && (
-          <div className="chart-container">
-            <h2>Total Shadbala Averages</h2>
-            <TotalBarChart data={data} />
-          </div>
-        )}
-        {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
       </div>
   );
 }

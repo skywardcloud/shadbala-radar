@@ -184,20 +184,34 @@ def _cheshta_bala(speed: float, planet: str) -> float:
 
 
 def _drik_bala(plon: float, planet: str, positions: dict[str, float]) -> float:
-    """Aspect strength considering benefic or malefic nature of other planets."""
+    """Return planetary aspect strength using classical Parashara rules."""
 
     others = {name: lon for name, lon in positions.items() if name != planet}
     if not others:
         return 0.0
 
+    base_strength = 60.0
+    tolerance = 5.0
+
+    aspect_houses = {
+        "Saturn": {3: 1.0, 7: 1.0, 10: 1.0},
+        "Jupiter": {5: 0.6, 7: 1.0, 9: 0.6},
+        "Mars": {4: 1.0, 7: 1.0, 8: 1.0},
+    }
+    default_houses = {7: 1.0}
+
     total = 0.0
     for name, other in others.items():
         diff = _angle_diff(plon, other)
-        strength = max(0.0, 60.0 - diff / 3.0)
-        if name in BENEFIC_PLANETS:
-            total += strength
-        elif name in MALEFIC_PLANETS:
-            total -= strength
+        for house, weight in aspect_houses.get(name, default_houses).items():
+            angle = ((house - 1) * 30) % 360.0
+            if abs(diff - angle) <= tolerance:
+                strength = base_strength * weight
+                if name in BENEFIC_PLANETS:
+                    total += strength
+                elif name in MALEFIC_PLANETS:
+                    total -= strength
+                break
     return total
 
 

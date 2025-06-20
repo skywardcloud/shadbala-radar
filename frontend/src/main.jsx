@@ -96,6 +96,7 @@ function App() {
   const [end, setEnd] = React.useState('');
   const [lat, setLat] = React.useState('40.7128');
   const [lon, setLon] = React.useState('-74.0060');
+  const [useTrueNode, setUseTrueNode] = React.useState(false);
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState(null);
 
@@ -103,7 +104,7 @@ function App() {
 
   const submit = async (e) => {
     e.preventDefault();
-    const params = new URLSearchParams({ start, end, lat, lon });
+    const params = new URLSearchParams({ start, end, lat, lon, use_true_node: useTrueNode });
     setError(null);
     try {
       const res = await fetch(`${BASE_URL}/balas?${params}`);
@@ -119,7 +120,7 @@ function App() {
   };
 
   const exportCsv = () => {
-    const params = new URLSearchParams({ start, end, lat, lon });
+    const params = new URLSearchParams({ start, end, lat, lon, use_true_node: useTrueNode });
     window.location.href = `${BASE_URL}/balas.csv?${params}`;
   };
 
@@ -143,6 +144,14 @@ function App() {
         <label>
           Lon
           <input type="number" step="0.0001" value={lon} onChange={(e) => setLon(e.target.value)} />
+        </label>
+        <label>
+          Use True Node
+          <input
+            type="checkbox"
+            checked={useTrueNode}
+            onChange={(e) => setUseTrueNode(e.target.checked)}
+          />
         </label>
         <button type="submit">Fetch</button>
         <button type="button" onClick={exportCsv}>Export CSV</button>

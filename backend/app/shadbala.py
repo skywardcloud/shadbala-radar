@@ -60,10 +60,11 @@ PLANETS = [
 ]
 
 # Simple benefic/malefic categorisation used for Drik bala
-# Moon and Mercury are considered benefic here while the Sun is treated as
-# neutral. Rahu and Ketu are currently ignored.
+# Moon and Mercury are considered benefic while the Sun is treated as neutral.
+# Rahu and Ketu are included as malefics when the nodes are added to the
+# positions dictionary.
 BENEFIC_PLANETS = {"Jupiter", "Venus", "Mercury", "Moon"}
-MALEFIC_PLANETS = {"Mars", "Saturn"}
+MALEFIC_PLANETS = {"Mars", "Saturn", "Rahu", "Ketu"}
 
 # Mapping of Python weekday numbers (Monday=0) to planetary lords
 WEEKDAY_LORD = {
@@ -260,11 +261,12 @@ def row(timestamp: datetime, lat: float, lon: float, use_true_node: bool = False
     else:
         rahu_lon = node_calc[0]
     ketu_lon = (rahu_lon + 180.0) % 360.0
-    # Uncomment the following lines to include the nodes in Drik bala
-    # positions["Rahu"] = rahu_lon
-    # positions["Ketu"] = ketu_lon
+    # Include the lunar nodes so they contribute to Drik bala calculations
+    positions["Rahu"] = rahu_lon
+    positions["Ketu"] = ketu_lon
 
     for name, pos in positions.items():
-        results[name]["drik"] = _drik_bala(pos, name, positions)
+        if name in results:
+            results[name]["drik"] = _drik_bala(pos, name, positions)
 
     return results

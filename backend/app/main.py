@@ -46,6 +46,7 @@ def get_balas(
     end: str | None = None,
     lat: float = 40.7128,
     lon: float = -74.0060,
+    use_true_node: bool = False,
 ):
     """Return shadbala rows every 5 minutes.
 
@@ -55,7 +56,7 @@ def get_balas(
     timezone. The range may not exceed 24 hours.
     """
 
-    start_utc, frames = _collect_data(hours_ahead, start, end, lat, lon)
+    start_utc, frames = _collect_data(hours_ahead, start, end, lat, lon, use_true_node)
     return {"start": start_utc.isoformat(), "interval": "5m", "data": frames}
 
 
@@ -65,6 +66,7 @@ def _collect_data(
     end: str | None,
     lat: float,
     lon: float,
+    use_true_node: bool,
 ):
     tz = ZoneInfo("America/New_York")
 
@@ -91,14 +93,17 @@ def _collect_data(
         frames = []
         current = start_utc
         while current <= end_utc:
-            frames.append(row(current, lat, lon))
+            frames.append(row(current, lat, lon, use_true_node=use_true_node))
             current += timedelta(minutes=5)
         return start_utc, frames
 
     now = datetime.utcnow()
     if hours_ahead is None:
         hours_ahead = 24
-    frames = [row(now + timedelta(minutes=5 * i), lat, lon) for i in range(int(hours_ahead * 12))]
+    frames = [
+        row(now + timedelta(minutes=5 * i), lat, lon, use_true_node=use_true_node)
+        for i in range(int(hours_ahead * 12))
+    ]
     return now, frames
 
 
@@ -109,10 +114,11 @@ def get_balas_csv(
     end: str | None = None,
     lat: float = 40.7128,
     lon: float = -74.0060,
+    use_true_node: bool = False,
 ):
     """Return shadbala rows as CSV."""
 
-    start_utc, frames = _collect_data(hours_ahead, start, end, lat, lon)
+    start_utc, frames = _collect_data(hours_ahead, start, end, lat, lon, use_true_node)
 
     output = StringIO()
     writer = csv.writer(output)

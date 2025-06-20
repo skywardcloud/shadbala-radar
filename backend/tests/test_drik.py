@@ -29,5 +29,6 @@ def load_module():
 
 def test_drik_bala_negative():
     shadbala = load_module()
-    result = shadbala._drik_bala(10, {'Mars': 10})
+    positions = {"Sun": 10, "Mars": 10}
+    result = shadbala._drik_bala(10, "Sun", positions)
     assert result == -60.0

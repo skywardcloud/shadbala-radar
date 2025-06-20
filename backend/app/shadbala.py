@@ -212,8 +212,8 @@ def _drik_bala(plon: float, planet: str, positions: dict[str, float]) -> float:
 
     total = 0.0
     for name, other in others.items():
-        # measure from the source planet (other) to the target planet (plon)
-        diff = (plon - other + 360.0) % 360.0
+        # measure from the aspecting planet toward the target planet
+        diff = (other - plon + 360.0) % 360.0
         aspects = ASPECTS.get(name, DEFAULT_ASPECT)
         for angle, weight in aspects.items():
             if abs(diff - angle) <= TOL:

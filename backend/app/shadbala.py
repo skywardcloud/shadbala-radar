@@ -184,7 +184,12 @@ def _cheshta_bala(speed: float, planet: str) -> float:
 
 
 def _drik_bala(plon: float, planet: str, positions: dict[str, float]) -> float:
-    """Return Drik Bala based on classical Graha Drishti rules."""
+    """Return Drik Bala based on classical Graha Drishti rules.
+
+    The angular separation is measured from the aspecting planet toward the
+    planet receiving the aspect.  Only separations that fall within the classical
+    aspect angles contribute to the total strength.
+    """
 
     # Remove the planet under consideration from the list of aspecting bodies
     others = {name: lon for name, lon in positions.items() if name != planet}
@@ -198,16 +203,17 @@ def _drik_bala(plon: float, planet: str, positions: dict[str, float]) -> float:
     # 7th house (180°).  Weights implement the commonly used fractional values
     # for specific aspects.
     ASPECTS: dict[str, dict[int, float]] = {
-        "Mars": {90: 1.0, 150: 1.0, 180: 1.0},     # 4th, 8th, 7th
-        "Jupiter": {120: 0.6, 180: 1.0},           # 5th/9th (120/240), 7th
-        "Saturn": {60: 1.0, 90: 1.0, 180: 1.0},    # 3rd, 10th (270 -> 90), 7th
+        "Mars": {90: 1.0, 180: 1.0, 210: 1.0},       # 4th, 7th, 8th
+        "Jupiter": {120: 0.6, 180: 1.0, 240: 0.6},   # 5th, 7th, 9th
+        "Saturn": {60: 1.0, 180: 1.0, 270: 1.0},     # 3rd, 7th, 10th
     }
 
     DEFAULT_ASPECT = {180: 1.0}
 
     total = 0.0
     for name, other in others.items():
-        diff = _angle_diff(plon, other)
+        # measure from the source planet (other) to the target planet (plon)
+        diff = (plon - other + 360.0) % 360.0
         aspects = ASPECTS.get(name, DEFAULT_ASPECT)
         for angle, weight in aspects.items():
             if abs(diff - angle) <= TOL:

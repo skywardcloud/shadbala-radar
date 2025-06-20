@@ -1,8 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import os
+import csv
+from io import StringIO
 
 try:
     # When executed as part of the package
@@ -53,6 +55,17 @@ def get_balas(
     timezone. The range may not exceed 24 hours.
     """
 
+    start_utc, frames = _collect_data(hours_ahead, start, end, lat, lon)
+    return {"start": start_utc.isoformat(), "interval": "5m", "data": frames}
+
+
+def _collect_data(
+    hours_ahead: int | None,
+    start: str | None,
+    end: str | None,
+    lat: float,
+    lon: float,
+):
     tz = ZoneInfo("America/New_York")
 
     if start and end:
@@ -80,11 +93,48 @@ def get_balas(
         while current <= end_utc:
             frames.append(row(current, lat, lon))
             current += timedelta(minutes=5)
-        return {"start": start_utc.isoformat(), "interval": "5m", "data": frames}
+        return start_utc, frames
 
     now = datetime.utcnow()
     if hours_ahead is None:
         hours_ahead = 24
     frames = [row(now + timedelta(minutes=5 * i), lat, lon) for i in range(int(hours_ahead * 12))]
-    return {"start": now.isoformat(), "interval": "5m", "data": frames}
+    return now, frames
+
+
+@app.get("/balas.csv")
+def get_balas_csv(
+    hours_ahead: int | None = 24,
+    start: str | None = None,
+    end: str | None = None,
+    lat: float = 40.7128,
+    lon: float = -74.0060,
+):
+    """Return shadbala rows as CSV."""
+
+    start_utc, frames = _collect_data(hours_ahead, start, end, lat, lon)
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["timestamp", "planet", "uccha", "dig", "kala", "cheshta", "naisargika", "drik"])
+
+    for i, frame in enumerate(frames):
+        ts = start_utc + timedelta(minutes=5 * i)
+        for planet, metrics in frame.items():
+            writer.writerow([
+                ts.isoformat(),
+                planet,
+                metrics["uccha"],
+                metrics["dig"],
+                metrics["kala"],
+                metrics["cheshta"],
+                metrics["naisargika"],
+                metrics["drik"],
+            ])
+
+    return Response(
+        output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=balas.csv"},
+    )
 

@@ -46,7 +46,7 @@ def test_drik_bala_signed_average():
         "Saturn": 0.0,
     }
     result = shadbala._drik_bala(0.0, "Sun", positions)
-    assert result == pytest.approx(20.0)
+    assert result == pytest.approx(120.0)
 
 
 def test_drik_bala_no_others():

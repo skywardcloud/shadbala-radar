@@ -197,7 +197,7 @@ def _drik_bala(plon: float, planet: str, positions: dict[str, float]) -> float:
             total += strength
         elif name in MALEFIC_PLANETS:
             total -= strength
-    return total / len(others)
+    return total
 
 
 def row(timestamp: datetime, lat: float, lon: float):

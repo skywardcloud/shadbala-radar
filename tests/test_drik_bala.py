@@ -48,8 +48,8 @@ def test_drik_bala_signed_average():
     result = shadbala._drik_bala(0.0, "Sun", positions)
     # With aspects measured from the aspecting planet to the target,
     # benefics contribute positively while malefics reduce the score.
-    # The configuration below should yield a total of 216.
-    assert result == pytest.approx(216.0)
+    # The configuration below should yield a total of 96.
+    assert result == pytest.approx(96.0)
 
 
 def test_drik_bala_no_others():

@@ -54,9 +54,15 @@ button:hover {
 .chart-container {
   background-color: #fff;
   padding: 1rem;
-  margin-bottom: 2rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 svg.chart {
@@ -64,19 +70,3 @@ svg.chart {
   border: 1px solid #ddd;
 }
 
-table.bala-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-table.bala-table th,
-table.bala-table td {
-  border: 1px solid #ccc;
-  padding: 0.3rem 0.5rem;
-  text-align: center;
-}
-
-table.bala-table th {
-  background-color: #f0f0f0;
-}

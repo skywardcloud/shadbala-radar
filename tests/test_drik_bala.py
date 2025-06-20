@@ -38,15 +38,15 @@ def test_drik_bala_signed_average():
     shadbala = load_module()
     positions = {
         "Sun": 0.0,
-        "Moon": 0.0,
-        "Mars": 0.0,
-        "Mercury": 0.0,
-        "Jupiter": 0.0,
-        "Venus": 0.0,
-        "Saturn": 0.0,
+        "Moon": 180.0,
+        "Mars": 90.0,
+        "Mercury": 180.0,
+        "Jupiter": 120.0,
+        "Venus": 180.0,
+        "Saturn": 60.0,
     }
     result = shadbala._drik_bala(0.0, "Sun", positions)
-    assert result == pytest.approx(120.0)
+    assert result == pytest.approx(96.0)
 
 
 def test_drik_bala_no_others():

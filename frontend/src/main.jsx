@@ -88,34 +88,7 @@ function PlanetChart({ planet, data }) {
   return <svg ref={svgRef} width="450" height="300" className="chart"></svg>;
 }
 
-function PlanetTable({ planet, data }) {
-  const startTime = new Date(data.start);
-  const times = data.data.map((_, i) => new Date(startTime.getTime() + i * 5 * 60 * 1000));
-  const components = ['uccha', 'dig', 'kala', 'cheshta', 'naisargika', 'drik'];
-
-  return (
-    <table className="bala-table">
-      <thead>
-        <tr>
-          <th>Time</th>
-          {components.map(c => (
-            <th key={c}>{c}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.data.map((row, i) => (
-          <tr key={i}>
-            <td>{times[i].toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-            {components.map(c => (
-              <td key={c}>{Math.abs(row[planet][c]).toFixed(2)}</td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
+// Table view removed as charts are now displayed without accompanying tables
 
 
 function App() {
@@ -176,12 +149,11 @@ function App() {
       </form>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {data && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <div className="charts-grid">
             {PLANETS.map(p => (
-              <div key={p} style={{ flex: '0 0 48%' }} className="chart-container">
+              <div key={p} className="chart-container">
                 <h2>{p}</h2>
                 <PlanetChart planet={p} data={data} />
-                <PlanetTable planet={p} data={data} />
               </div>
             ))}
           </div>

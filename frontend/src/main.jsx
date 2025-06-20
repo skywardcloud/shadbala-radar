@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as d3 from 'd3';
+import './styles.css';
 
 const PLANETS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
 
@@ -59,6 +60,21 @@ function PlanetChart({ planet, data }) {
       .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
 
+    // gridlines
+    svg.append('g')
+      .attr('class', 'grid')
+      .attr('transform', `translate(0,${height - margin.bottom})`)
+      .call(d3.axisBottom(x)
+        .tickSize(-(height - margin.top - margin.bottom))
+        .tickFormat(''));
+
+    svg.append('g')
+      .attr('class', 'grid')
+      .attr('transform', `translate(${margin.left},0)`)
+      .call(d3.axisLeft(y)
+        .tickSize(-(width - margin.left - margin.right))
+        .tickFormat(''));
+
     // zero baseline for negative values
     svg.append('line')
       .attr('x1', margin.left)
@@ -66,9 +82,24 @@ function PlanetChart({ planet, data }) {
       .attr('y1', y(0))
       .attr('y2', y(0))
       .attr('stroke', '#ccc');
+
+    // axis labels
+    svg.append('text')
+      .attr('x', width / 2)
+      .attr('y', height)
+      .attr('dy', '2.5em')
+      .attr('text-anchor', 'middle')
+      .text('Time');
+
+    svg.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -height / 2)
+      .attr('y', 15)
+      .attr('text-anchor', 'middle')
+      .text('Bala Value');
   }, [data, planet]);
 
-  return <svg ref={svgRef} width="450" height="300"></svg>;
+  return <svg ref={svgRef} width="450" height="300" className="chart"></svg>;
 }
 
 function TotalBarChart({ data }) {
@@ -120,15 +151,44 @@ function TotalBarChart({ data }) {
       .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
 
+    // gridlines
+    svg.append('g')
+      .attr('class', 'grid')
+      .attr('transform', `translate(0,${height - margin.bottom})`)
+      .call(d3.axisBottom(x)
+        .tickSize(-(height - margin.top - margin.bottom))
+        .tickFormat(''));
+
+    svg.append('g')
+      .attr('class', 'grid')
+      .attr('transform', `translate(${margin.left},0)`)
+      .call(d3.axisLeft(y)
+        .tickSize(-(width - margin.left - margin.right))
+        .tickFormat(''));
+
     svg.append('line')
       .attr('x1', margin.left)
       .attr('x2', width - margin.right)
       .attr('y1', y(0))
       .attr('y2', y(0))
       .attr('stroke', '#ccc');
+
+    svg.append('text')
+      .attr('x', width / 2)
+      .attr('y', height)
+      .attr('dy', '2.5em')
+      .attr('text-anchor', 'middle')
+      .text('Planet');
+
+    svg.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -height / 2)
+      .attr('y', 15)
+      .attr('text-anchor', 'middle')
+      .text('Avg Bala');
   }, [data]);
 
-  return <svg ref={svgRef} width="600" height="300"></svg>;
+  return <svg ref={svgRef} width="600" height="300" className="chart"></svg>;
 }
 
 function App() {
@@ -160,9 +220,9 @@ function App() {
 
 
   return (
-    <div>
+    <div className="app-container">
       <h1>Shadbala Radar</h1>
-      <form onSubmit={submit} style={{ marginBottom: '1rem' }}>
+      <form onSubmit={submit}>
         <label>
           Start (EST)
           <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required />
@@ -185,7 +245,7 @@ function App() {
         {data && (
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             {PLANETS.map(p => (
-              <div key={p} style={{ marginBottom: '2rem', flex: '0 0 48%' }}>
+              <div key={p} style={{ flex: '0 0 48%' }} className="chart-container">
                 <h2>{p}</h2>
                 <PlanetChart planet={p} data={data} />
               </div>
@@ -193,7 +253,7 @@ function App() {
           </div>
         )}
         {data && (
-          <div style={{ marginBottom: '2rem' }}>
+          <div className="chart-container">
             <h2>Total Shadbala Averages</h2>
             <TotalBarChart data={data} />
           </div>

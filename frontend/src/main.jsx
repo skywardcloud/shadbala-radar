@@ -24,10 +24,16 @@ function PlanetChart({ planet, data }) {
       .domain(d3.extent(times))
       .range([margin.left, width - margin.right]);
 
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(data.data, row => d3.max(components, c => row[planet][c]))])
-      .nice()
-      .range([height - margin.bottom, margin.top]);
+      const yMin = d3.min(data.data, row =>
+        d3.min(components, c => row[planet][c])
+      );
+      const yMax = d3.max(data.data, row =>
+        d3.max(components, c => row[planet][c])
+      );
+      const y = d3.scaleLinear()
+        .domain([Math.min(0, yMin), yMax])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
 
     const line = d3.line()
       .x((d, i) => x(times[i]))
@@ -52,6 +58,14 @@ function PlanetChart({ planet, data }) {
     svg.append('g')
       .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
+
+    // zero baseline for negative values
+    svg.append('line')
+      .attr('x1', margin.left)
+      .attr('x2', width - margin.right)
+      .attr('y1', y(0))
+      .attr('y2', y(0))
+      .attr('stroke', '#ccc');
   }, [data, planet]);
 
   return <svg ref={svgRef} width="450" height="300"></svg>;
@@ -81,8 +95,10 @@ function TotalBarChart({ data }) {
       .range([margin.left, width - margin.right])
       .padding(0.1);
 
+    const yMin = d3.min(totals);
+    const yMax = d3.max(totals);
     const y = d3.scaleLinear()
-      .domain([0, d3.max(totals)])
+      .domain([Math.min(0, yMin), yMax])
       .nice()
       .range([height - margin.bottom, margin.top]);
 
@@ -103,6 +119,13 @@ function TotalBarChart({ data }) {
     svg.append('g')
       .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
+
+    svg.append('line')
+      .attr('x1', margin.left)
+      .attr('x2', width - margin.right)
+      .attr('y1', y(0))
+      .attr('y2', y(0))
+      .attr('stroke', '#ccc');
   }, [data]);
 
   return <svg ref={svgRef} width="600" height="300"></svg>;

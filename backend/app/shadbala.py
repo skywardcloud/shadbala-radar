@@ -60,7 +60,9 @@ PLANETS = [
 ]
 
 # Simple benefic/malefic categorisation used for Drik bala
-BENEFIC_PLANETS = {"Jupiter", "Venus"}
+# Moon and Mercury are considered benefic here while the Sun is treated as
+# neutral. Rahu and Ketu are currently ignored.
+BENEFIC_PLANETS = {"Jupiter", "Venus", "Mercury", "Moon"}
 MALEFIC_PLANETS = {"Mars", "Saturn"}
 
 # Mapping of Python weekday numbers (Monday=0) to planetary lords
@@ -180,20 +182,21 @@ def _cheshta_bala(speed: float, planet: str) -> float:
     return ratio * 60.0
 
 
-def _drik_bala(plon: float, others: dict[str, float]) -> float:
-    """Aspect strength based on separations from other planets.
+def _drik_bala(plon: float, planet: str, positions: dict[str, float]) -> float:
+    """Aspect strength considering benefic or malefic nature of other planets."""
 
-    Benefic aspects contribute positively while malefic aspects reduce the score.
-    """
+    others = {name: lon for name, lon in positions.items() if name != planet}
     if not others:
         return 0.0
+
     total = 0.0
     for name, other in others.items():
         diff = _angle_diff(plon, other)
         strength = max(0.0, 60.0 - diff / 3.0)
-        if name in MALEFIC_PLANETS:
-            strength *= -1
-        total += strength
+        if name in BENEFIC_PLANETS:
+            total += strength
+        elif name in MALEFIC_PLANETS:
+            total -= strength
     return total / len(others)
 
 
@@ -230,7 +233,6 @@ def row(timestamp: datetime, lat: float, lon: float):
         }
 
     for name, pos in positions.items():
-        others = {pname: p for pname, p in positions.items() if pname != name}
-        results[name]["drik"] = _drik_bala(pos, others)
+        results[name]["drik"] = _drik_bala(pos, name, positions)
 
     return results

@@ -49,6 +49,21 @@ def patch_swe(monkeypatch):
     return shadbala
 
 
+def patch_swe_basic(monkeypatch):
+    """Patch swisseph without requiring fastapi for simple unit tests."""
+    dummy = DummySwe()
+
+    def julday(y, m, d, h):
+        return h / 24.0
+
+    dummy.julday = julday
+    sys.modules['swisseph'] = dummy
+    import importlib
+    shadbala = importlib.import_module('backend.app.shadbala')
+    monkeypatch.setattr(shadbala, "swe", dummy)
+    return shadbala
+
+
 def test_row_structure(monkeypatch):
     shadbala = patch_swe(monkeypatch)
     ts = datetime(2020, 1, 1, 12, 0, 0)
@@ -67,6 +82,20 @@ def test_row_values(monkeypatch):
     assert abs(res["Moon"]["dig"] - 40.0) < 1e-6
     assert abs(res["Venus"]["cheshta"] - 50.0) < 1e-6
     assert abs(res["Jupiter"]["kala"] - 30.0) < 1e-6
+
+
+def test_kala_bala_hora_and_friend(monkeypatch):
+    """Unequal hora gives full value for lord and partial for friends."""
+    shadbala = patch_swe_basic(monkeypatch)
+    # 07:30 on a Wednesday -> Moon hora
+    ts = datetime(2020, 1, 1, 7, 30, 0)
+    res = shadbala.row(ts, 0, 0)
+    assert res["Moon"]["kala"] == 60.0
+
+    # 08:30 same day -> Saturn hora, Mercury is friendly to Saturn
+    ts2 = datetime(2020, 1, 1, 8, 30, 0)
+    res2 = shadbala.row(ts2, 0, 0)
+    assert res2["Mercury"]["kala"] == 45.0
 
 
 def test_balas_endpoint(monkeypatch):

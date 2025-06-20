@@ -63,6 +63,31 @@ PLANETS = [
 BENEFIC_PLANETS = {"Jupiter", "Venus"}
 MALEFIC_PLANETS = {"Mars", "Saturn"}
 
+# Mapping of Python weekday numbers (Monday=0) to planetary lords
+WEEKDAY_LORD = {
+    0: "Moon",     # Monday
+    1: "Mars",     # Tuesday
+    2: "Mercury",  # Wednesday
+    3: "Jupiter",  # Thursday
+    4: "Venus",    # Friday
+    5: "Saturn",   # Saturday
+    6: "Sun",      # Sunday
+}
+
+# Order of hora lords used for the repeating sequence
+HORA_SEQUENCE = ["Sun", "Venus", "Mercury", "Moon", "Saturn", "Jupiter", "Mars"]
+
+# Simplified friendship table for hora relationships
+HORA_FRIENDS = {
+    "Sun": {"Moon", "Mars", "Jupiter"},
+    "Moon": {"Sun", "Mercury"},
+    "Mars": {"Sun", "Moon", "Jupiter"},
+    "Mercury": {"Sun", "Venus"},
+    "Jupiter": {"Sun", "Moon", "Mars"},
+    "Venus": {"Mercury", "Saturn"},
+    "Saturn": {"Mercury", "Venus"},
+}
+
 
 def _angle_diff(a: float, b: float) -> float:
     """Return the absolute difference between two angles within 0..180."""
@@ -106,15 +131,21 @@ def _dig_bala(jd: float, lat: float, lon: float, planet_long: float, planet: str
 
 
 def _kala_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
-    """Time strength based on day/night fraction."""
+    """Time strength using unequal horas and friendship."""
     jd_date = swe.julday(timestamp.year, timestamp.month, timestamp.day, 0.0)
+
     try:
         sr = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_RISE)[1]
         ss = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_SET)[1]
+        sr_next = swe.rise_trans(jd_date + 1, swe.SUN, lon, lat, swe.CALC_RISE)[1]
+        ss_prev = swe.rise_trans(jd_date - 1, swe.SUN, lon, lat, swe.CALC_SET)[1]
     except Exception:
         # Fallback to naive 6am/6pm times if ephemeris is unavailable
         sr = jd_date + 0.25
         ss = jd_date + 0.75
+        sr_next = sr + 1.0
+        ss_prev = ss - 1.0
+
     jd_now = swe.julday(
         timestamp.year,
         timestamp.month,
@@ -122,20 +153,25 @@ def _kala_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> floa
         timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
     )
 
-    if sr < ss:
-        day_frac = min(max((jd_now - sr) / (ss - sr), 0.0), 1.0) if sr <= jd_now < ss else 0.0
-    else:
-        day_frac = 0.5
+    if sr <= jd_now < ss:
+        hora_len = (ss - sr) / 12.0
+        hora_index = int((jd_now - sr) / hora_len)
+    elif jd_now >= ss:
+        hora_len = (sr_next - ss) / 12.0
+        hora_index = 12 + int((jd_now - ss) / hora_len)
+    else:  # before sunrise
+        hora_len = (sr - ss_prev) / 12.0
+        hora_index = 12 + int((jd_now - ss_prev) / hora_len)
 
-    is_day = sr <= jd_now < ss if sr < ss else True
+    weekday_lord = WEEKDAY_LORD[timestamp.weekday()]
+    start_idx = HORA_SEQUENCE.index(weekday_lord)
+    hora_lord = HORA_SEQUENCE[(start_idx + hora_index) % 7]
 
-    if planet in ["Sun", "Jupiter", "Saturn"]:
-        return 60.0 * day_frac
-    elif planet in ["Moon", "Mars", "Venus"]:
-        return 60.0 * (1.0 - day_frac)
-    else:  # Mercury, treat as neutral
-        balance = 1.0 - abs(0.5 - day_frac) * 2
-        return 30.0 + 30.0 * balance
+    if planet == hora_lord:
+        return 60.0
+    if planet in HORA_FRIENDS.get(hora_lord, set()):
+        return 45.0
+    return 30.0
 
 
 def _cheshta_bala(speed: float, planet: str) -> float:

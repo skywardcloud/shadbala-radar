@@ -523,25 +523,23 @@ def compute_shadbala(timestamp: datetime, lat: float, lon: float, use_true_node:
             + _drekkana_bala(lon_deg, name)
         )
         dig = _dig_bala(jd, lat, lon, lon_deg, name)
-        kala = (
-            _hora_bala(timestamp, lat, lon, name)
-            + _paksha_bala(moon_long, sun_long) if name == "Moon" else _hora_bala(timestamp, lat, lon, name)
-        )
+        kala_strength = _hora_bala(timestamp, lat, lon, name)
         if name == "Moon":
-            kala += _paksha_bala(moon_long, sun_long)
-        kala += _nathonnatha_bala(lat_deg)
-        kala += _tribhaga_bala(timestamp, lat, lon, name)
-        kala += _ayana_bala(sun_long, name)
-        kala += _varshadi_bala(timestamp, name)
-        kala += _yamardha_bala(timestamp, lat, lon, name)
+            paksha = _paksha_bala(moon_long, sun_long)
+            kala_strength += paksha
+        kala_strength += _nathonnatha_bala(lat_deg)
+        kala_strength += _tribhaga_bala(timestamp, lat, lon, name)
+        kala_strength += _ayana_bala(sun_long, name)
+        kala_strength += _varshadi_bala(timestamp, name)
+        kala_strength += _yamardha_bala(timestamp, lat, lon, name)
         cheshta = _cheshta_bala(speeds[name], name)
         naisargika = NAISARGIKA_BALA[name]
         drik = _drik_bala(lon_deg, name, positions)
-        total = sthana + dig + kala + cheshta + naisargika + drik
+        total = sthana + dig + kala_strength + cheshta + naisargika + drik
         results[name] = {
             "sthāna": sthana,
             "dig": dig,
-            "kāla": kala,
+            "kāla": kala_strength,
             "cheshta": cheshta,
             "naisargika": naisargika,
             "drik": drik,

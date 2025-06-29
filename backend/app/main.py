@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -13,7 +13,13 @@ except ImportError:  # pragma: no cover - allow running file directly
     # Fallback for running `python main.py` during development
     from shadbala import row
 
-app = FastAPI()
+app = FastAPI(root_path=os.getenv("ROOT_PATH", ""))
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Incoming request: {request.method} {request.url.path}")
+    response = await call_next(request)
+    return response
 
 origins_env = os.getenv("ALLOWED_ORIGINS")
 if origins_env:
@@ -22,13 +28,7 @@ else:
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://fantastic-space-cod-5g57gw9764p9374gr-5173.app.github.dev",
-        "https://fantastic-space-cod-5g57gw9764p9374gr-5173.app.github.dev"
     ]
-
-codespace = os.getenv("CODESPACE_NAME")
-if codespace:
-    allowed_origins.append(f"https://5173-{codespace}.app.github.dev")
 
 app.add_middleware(
     CORSMiddleware,

@@ -100,7 +100,7 @@ function App() {
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState(null);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || 'https://fantastic-space-cod-5g57gw9764p9374gr-8000.app.github.dev';
+  const BASE_URL = import.meta.env.VITE_API_URL || 'https://automatic-barnacle-97wg7pxgvq5whpw9x-8000.app.github.dev';
 
   const submit = async (e) => {
     e.preventDefault();

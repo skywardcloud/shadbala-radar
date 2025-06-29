@@ -5,6 +5,9 @@ from zoneinfo import ZoneInfo
 import os
 import csv
 from io import StringIO
+from dotenv import load_dotenv
+
+load_dotenv()
 
 try:
     # When executed as part of the package

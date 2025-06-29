@@ -28,14 +28,10 @@ DIRECTIONAL_HOUSE = {
 }
 
 # Maximum speed used for Cheshta bala normalisation (deg/day)
-MAX_SPEED = {
-    "Sun": 1.0,
-    "Moon": 15.0,
-    "Mars": 1.5,
-    "Mercury": 2.0,
-    "Jupiter": 1.5,
-    "Venus": 1.2,
-    "Saturn": 1.0,
+MAX_SPEED = {              # sidereal ° /day
+    "Sun": 1.02, "Moon": 14.9, "Mercury": 3.2,
+    "Venus": 1.35, "Mars": 0.80,
+    "Jupiter": 0.25, "Saturn": 0.13,
 }
 
 # Naisargika bala values (commonly used constants)
@@ -48,6 +44,40 @@ NAISARGIKA_BALA = {
     "Venus": 42.85,
     "Saturn": 8.57,
 }
+
+# Moolatrikona positions (sign_index, start_deg, end_deg)
+MOOLATRIKONA = {
+    "Sun": (4, 0, 20),      # Leo 0-20
+    "Moon": (1, 3, 30),     # Taurus 3-30
+    "Mars": (0, 0, 12),     # Aries 0-12
+    "Mercury": (5, 15, 20), # Virgo 15-20
+    "Jupiter": (8, 0, 10),  # Sagittarius 0-10
+    "Venus": (6, 0, 15),    # Libra 0-15
+    "Saturn": (10, 0, 20),  # Aquarius 0-20
+}
+
+# Natural friendship table (permanent friends)
+NATURAL_FRIENDS = {
+    "Sun": {"Moon", "Mars", "Jupiter"},
+    "Moon": {"Sun", "Mercury"},
+    "Mars": {"Sun", "Moon", "Jupiter"},
+    "Mercury": {"Sun", "Venus"},
+    "Jupiter": {"Sun", "Moon", "Mars"},
+    "Venus": {"Mercury", "Saturn"},
+    "Saturn": {"Mercury", "Venus"},
+}
+
+# Natural enmity table
+NATURAL_ENEMIES = {
+    "Sun": {"Venus", "Saturn"},
+    "Moon": set(), # No one
+    "Mars": {"Mercury"},
+    "Mercury": {"Moon"},
+    "Jupiter": {"Mercury", "Venus"},
+    "Venus": {"Sun", "Moon"},
+    "Saturn": {"Sun", "Moon", "Mars"},
+}
+
 
 PLANETS = [
     ("Sun", swe.SUN),
@@ -77,19 +107,58 @@ WEEKDAY_LORD = {
     6: "Sun",      # Sunday
 }
 
+# Hora relationship table: friend, neutral, enemy
+HORA_REL = {
+    "Sun": {"friend": {"Moon", "Jupiter"}, "neutral": {"Mars"}, "enemy": {"Mercury", "Venus", "Saturn"}},
+    "Moon": {"friend": {"Sun", "Mercury"}, "neutral": {"Mars", "Jupiter", "Venus", "Saturn"}, "enemy": set()},
+    "Mars": {"friend": {"Sun", "Moon", "Jupiter"}, "neutral": {"Venus", "Saturn"}, "enemy": {"Mercury"}},
+    "Mercury": {"friend": {"Sun", "Venus"}, "neutral": {"Mars", "Jupiter", "Saturn"}, "enemy": {"Moon"}},
+    "Jupiter": {"friend": {"Sun", "Moon", "Mars"}, "neutral": {"Saturn"}, "enemy": {"Mercury", "Venus"}},
+    "Venus": {"friend": {"Mercury", "Saturn"}, "neutral": {"Mars", "Jupiter"}, "enemy": {"Sun", "Moon"}},
+    "Saturn": {"friend": {"Mercury", "Venus"}, "neutral": {"Jupiter"}, "enemy": {"Sun", "Moon", "Mars"}},
+}
+
+
+def _get_hora_lord(timestamp: datetime, lat: float, lon: float) -> str:
+    """Determine the planetary lord of the current hora."""
+    jd_date = swe.julday(timestamp.year, timestamp.month, timestamp.day, 0.0)
+
+    try:
+        sr = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_RISE)[1][0]
+        ss = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_SET)[1][0]
+        sr_next = swe.rise_trans(jd_date + 1, swe.SUN, lon, lat, swe.CALC_RISE)[1][0]
+        ss_prev = swe.rise_trans(jd_date - 1, swe.SUN, lon, lat, swe.CALC_SET)[1][0]
+    except (TypeError, Exception):
+        # Fallback to naive 6am/6pm times if ephemeris is unavailable
+        sr = jd_date + 0.25
+        ss = jd_date + 0.75
+        sr_next = sr + 1.0
+        ss_prev = ss - 1.0
+
+    jd_now = swe.julday(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
+    )
+
+    if sr <= jd_now < ss:
+        hora_len = (ss - sr) / 12.0
+        hora_index = int((jd_now - sr) / hora_len)
+    elif jd_now >= ss:
+        hora_len = (sr_next - ss) / 12.0
+        hora_index = 12 + int((jd_now - ss) / hora_len)
+    else:  # before sunrise
+        hora_len = (sr - ss_prev) / 12.0
+        hora_index = 12 + int((jd_now - ss_prev) / hora_len)
+
+    weekday_lord = WEEKDAY_LORD[timestamp.weekday()]
+    start_idx = HORA_SEQUENCE.index(weekday_lord)
+    return HORA_SEQUENCE[(start_idx + hora_index) % 7]
+
+
 # Order of hora lords used for the repeating sequence
 HORA_SEQUENCE = ["Sun", "Venus", "Mercury", "Moon", "Saturn", "Jupiter", "Mars"]
-
-# Simplified friendship table for hora relationships
-HORA_FRIENDS = {
-    "Sun": {"Moon", "Mars", "Jupiter"},
-    "Moon": {"Sun", "Mercury"},
-    "Mars": {"Sun", "Moon", "Jupiter"},
-    "Mercury": {"Sun", "Venus"},
-    "Jupiter": {"Sun", "Moon", "Mars"},
-    "Venus": {"Mercury", "Saturn"},
-    "Saturn": {"Mercury", "Venus"},
-}
 
 
 def _angle_diff(a: float, b: float) -> float:
@@ -134,52 +203,27 @@ def _dig_bala(jd: float, lat: float, lon: float, planet_long: float, planet: str
 
 
 def _kala_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
-    """Time strength using unequal horas and friendship."""
-    jd_date = swe.julday(timestamp.year, timestamp.month, timestamp.day, 0.0)
-
-    try:
-        sr = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_RISE)[1]
-        ss = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_SET)[1]
-        sr_next = swe.rise_trans(jd_date + 1, swe.SUN, lon, lat, swe.CALC_RISE)[1]
-        ss_prev = swe.rise_trans(jd_date - 1, swe.SUN, lon, lat, swe.CALC_SET)[1]
-    except Exception:
-        # Fallback to naive 6am/6pm times if ephemeris is unavailable
-        sr = jd_date + 0.25
-        ss = jd_date + 0.75
-        sr_next = sr + 1.0
-        ss_prev = ss - 1.0
-
-    jd_now = swe.julday(
-        timestamp.year,
-        timestamp.month,
-        timestamp.day,
-        timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
-    )
-
-    if sr <= jd_now < ss:
-        hora_len = (ss - sr) / 12.0
-        hora_index = int((jd_now - sr) / hora_len)
-    elif jd_now >= ss:
-        hora_len = (sr_next - ss) / 12.0
-        hora_index = 12 + int((jd_now - ss) / hora_len)
-    else:  # before sunrise
-        hora_len = (sr - ss_prev) / 12.0
-        hora_index = 12 + int((jd_now - ss_prev) / hora_len)
-
-    weekday_lord = WEEKDAY_LORD[timestamp.weekday()]
-    start_idx = HORA_SEQUENCE.index(weekday_lord)
-    hora_lord = HORA_SEQUENCE[(start_idx + hora_index) % 7]
+    """Time strength using unequal horas and a 5-tier friendship model."""
+    hora_lord = _get_hora_lord(timestamp, lat, lon)
 
     if planet == hora_lord:
-        return 60.0
-    if planet in HORA_FRIENDS.get(hora_lord, set()):
-        return 45.0
-    return 30.0
+        return 60.0  # Adhi Mitra (great friend) - self
+
+    if planet in HORA_REL[hora_lord]["friend"]:
+        return 45.0  # Mitra (friend)
+    if planet in HORA_REL[hora_lord]["neutral"]:
+        return 30.0  # Sama (neutral)
+    
+    return 15.0 # Satru (enemy)
 
 
-def _cheshta_bala(speed: float, planet: str) -> float:
+def _cheshta_bala(speed: float, planet: str, overshoot: bool = False) -> float:
+    """Motion strength, capped at 60 unless overshoot is allowed."""
     max_speed = MAX_SPEED.get(planet, 1.0)
+    if max_speed == 0: return 0.0
     ratio = abs(speed) / max_speed
+    if not overshoot:
+        ratio = min(ratio, 1.0)
     return ratio * 60.0
 
 
@@ -322,16 +366,26 @@ _SIGN_RULER = [
 _MASCULINE_PLANETS = {"Sun", "Mars", "Jupiter", "Saturn"}
 _DIURNAL_PLANETS = {"Sun", "Jupiter", "Saturn"}
 
+VARGA_WT = {
+    "rasi": 30,
+    "hora": 15,
+    "drekkana": 10,
+    "navamsa": 7.5,
+    "dwadasamsa": 5,
+    "trimsamsa": 5,
+}
+
 
 def _saptavargaja_bala(longitude: float, planet: str) -> float:
-    """Strength from dignity across seven classical vargas."""
-    exalt_sign = int(EXALTATION_DEGREES[planet] // 30)
+    """Strength from dignity across seven classical vargas with classical weighting."""
+    sign_exalt = int(EXALTATION_DEGREES[planet] // 30)
     total = 0.0
-    for varga in (1, 2, 3, 9, 12, 30, 60):
+    # Note: Saptamsha (7) is omitted in this weighting scheme
+    for varga, weight in zip((1, 2, 3, 9, 12, 30), VARGA_WT.values()):
         sign = _varga_sign(longitude, varga)
         ruler = _SIGN_RULER[sign]
-        if ruler == planet or sign == exalt_sign:
-            total += 5.0
+        if ruler == planet or sign == sign_exalt:
+            total += weight
     return total
 
 
@@ -386,9 +440,40 @@ def _paksha_bala(moon_lon: float, sun_lon: float) -> float:
     return 60.0 * diff / 180.0
 
 
-def _nathonnatha_bala(lat_deg: float) -> float:
-    ratio = min(1.0, abs(lat_deg) / 30.0)
-    return 60.0 * ratio
+def _nathonnatha_bala(
+    timestamp: datetime, lat: float, lon: float, planet: str
+) -> float:
+    """Calculate Nathonnatha Bala based on day/night birth."""
+    jd_date = swe.julday(timestamp.year, timestamp.month, timestamp.day, 0.0)
+    try:
+        sr = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_RISE)[1]
+        ss = swe.rise_trans(jd_date, swe.SUN, lon, lat, swe.CALC_SET)[1]
+    except Exception:
+        # Fallback to naive 6am/6pm if ephemeris fails
+        sr = jd_date + 0.25
+        ss = jd_date + 0.75
+
+    jd_now = swe.julday(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour + timestamp.minute / 60 + timestamp.second / 3600,
+    )
+
+    is_day = sr <= jd_now < ss
+    is_diurnal = planet in {"Sun", "Jupiter", "Venus"}
+    is_nocturnal = planet in {"Moon", "Mars", "Saturn"}
+
+    # Mercury is always strong
+    if planet == "Mercury":
+        return 60.0
+
+    if is_day and is_diurnal:
+        return 60.0
+    if not is_day and is_nocturnal:
+        return 60.0
+
+    return 0.0
 
 
 def _tribhaga_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
@@ -436,7 +521,16 @@ def _varshadi_bala(timestamp: datetime, planet: str) -> float:
 
 
 def _hora_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
-    return _kala_bala(timestamp, lat, lon, planet)
+    hora_lord = _get_hora_lord(timestamp, lat, lon)
+    if planet == hora_lord:
+        return 60.0
+    
+    if planet in HORA_REL[hora_lord]["friend"]:
+        return 45.0
+    if planet in HORA_REL[hora_lord]["neutral"]:
+        return 30.0
+    
+    return 15.0
 
 
 def _yamardha_bala(timestamp: datetime, lat: float, lon: float, planet: str) -> float:
@@ -527,7 +621,7 @@ def compute_shadbala(timestamp: datetime, lat: float, lon: float, use_true_node:
         if name == "Moon":
             paksha = _paksha_bala(moon_long, sun_long)
             kala_strength += paksha
-        kala_strength += _nathonnatha_bala(lat_deg)
+        kala_strength += _nathonnatha_bala(timestamp, lat, lon, name)
         kala_strength += _tribhaga_bala(timestamp, lat, lon, name)
         kala_strength += _ayana_bala(sun_long, name)
         kala_strength += _varshadi_bala(timestamp, name)

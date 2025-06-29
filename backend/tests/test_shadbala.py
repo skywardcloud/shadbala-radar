@@ -99,7 +99,38 @@ def test_kala_bala_hora_and_friend(monkeypatch):
     # 08:30 same day -> Saturn hora, Mercury is friendly to Saturn
     ts2 = datetime(2020, 1, 1, 8, 30, 0)
     res2 = shadbala.row(ts2, 0, 0)
+    assert res2["Saturn"]["kala"] == 60.0
     assert res2["Mercury"]["kala"] == 45.0
+
+
+def test_nathonnatha_bala(monkeypatch):
+    """Test Nathonnatha Bala for day and night births."""
+    shadbala = patch_swe_basic(monkeypatch)
+
+    # Day birth (e.g., noon)
+    day_ts = datetime(2020, 1, 1, 12, 0, 0)
+    # Night birth (e.g., midnight)
+    night_ts = datetime(2020, 1, 1, 0, 0, 0)
+
+    # Diurnal planets
+    assert shadbala._nathonnatha_bala(day_ts, 0, 0, "Sun") == 60.0
+    assert shadbala._nathonnatha_bala(day_ts, 0, 0, "Jupiter") == 60.0
+    assert shadbala._nathonnatha_bala(day_ts, 0, 0, "Venus") == 60.0
+    assert shadbala._nathonnatha_bala(night_ts, 0, 0, "Sun") == 0.0
+    assert shadbala._nathonnatha_bala(night_ts, 0, 0, "Jupiter") == 0.0
+    assert shadbala._nathonnatha_bala(night_ts, 0, 0, "Venus") == 0.0
+
+    # Nocturnal planets
+    assert shadbala._nathonnatha_bala(day_ts, 0, 0, "Moon") == 0.0
+    assert shadbala._nathonnatha_bala(day_ts, 0, 0, "Mars") == 0.0
+    assert shadbala._nathonnatha_bala(day_ts, 0, 0, "Saturn") == 0.0
+    assert shadbala._nathonnatha_bala(night_ts, 0, 0, "Moon") == 60.0
+    assert shadbala._nathonnatha_bala(night_ts, 0, 0, "Mars") == 60.0
+    assert shadbala._nathonnatha_bala(night_ts, 0, 0, "Saturn") == 60.0
+
+    # Mercury (always strong)
+    assert shadbala._nathonnatha_bala(day_ts, 0, 0, "Mercury") == 60.0
+    assert shadbala._nathonnatha_bala(night_ts, 0, 0, "Mercury") == 60.0
 
 
 def test_balas_endpoint(monkeypatch):
